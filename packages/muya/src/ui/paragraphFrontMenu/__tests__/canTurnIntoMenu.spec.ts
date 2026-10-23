@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import type Parent from '../../../block/base/parent';
 import { describe, expect, it } from 'vitest';
-import { canTurnIntoMenu } from '../config';
+import { canTurnIntoMenu, getDuplicateShortCut } from '../config';
 
 // Regression for marktext commit 7b7a9424 "should not nest math block into
 // other math block (#1153)".
@@ -152,5 +152,13 @@ describe('canTurnIntoMenu — math block follows texMathDollars', () => {
         const items = canTurnIntoMenu(fakeBlock('paragraph', '', { texMathDollars: false }));
         expect(items.some((i: { label: string }) => i.label === 'math-block')).toBe(false);
         expect(items.some((i: { label: string }) => i.label === 'table')).toBe(true);
+    });
+});
+
+describe('getDuplicateShortCut', () => {
+    it('matches the desktop default duplicate keybinding per platform', () => {
+        expect(getDuplicateShortCut(true, false)).toBe('⌥⌘D');
+        expect(getDuplicateShortCut(false, true)).toBe('⌃⌥D');
+        expect(getDuplicateShortCut(false, false)).toBe('⇧⌃E');
     });
 });
