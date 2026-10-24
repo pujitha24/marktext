@@ -92,6 +92,8 @@ export function shouldBreakUndoGroup(
 class History {
     private _lastRecorded: number = 0;
     private _lastInputKind: Nullable<TInputKind> = null;
+    // An explicit cutoff selection must not be replaced by caret tracking.
+    private _selectionPinned = false;
     private _selectionStack: (Nullable<IHistorySelection>)[] = [];
     private _stack: IStack = {
         undo: [],
@@ -107,6 +109,15 @@ class History {
     }
 
     private _listen() {
+        // With no history yet, the first recorded edit has no earlier selection to
+        // undo back to, so track the caret until that edit arrives.
+        this._muya.eventCenter.on('selection-change', () => {
+            if (this._selectionPinned || this._stack.undo.length > 0 || this._stack.redo.length > 0)
+                return;
+            const selection = this._selection.getSelection();
+            if (selection != null)
+                this._selectionStack = [selection];
+        });
         this._muya.eventCenter.on(
             'json-change',
             (payload: IJSONChangePayload) => {
@@ -155,6 +166,7 @@ class History {
     clear() {
         this._stack = { undo: [], redo: [] };
         this._selectionStack = [];
+        this._selectionPinned = false;
         this._lastRecorded = 0;
     }
 
@@ -234,8 +246,10 @@ class History {
     // An explicit selection becomes the undo destination for the next recorded edit.
     cutoff(selection?: IHistorySelection) {
         this._lastRecorded = 0;
-        if (selection)
+        if (selection) {
             this._selectionStack = [selection];
+            this._selectionPinned = true;
+        }
     }
 
     markInputBoundary(inputType: string, data: Nullable<string>): void {
@@ -261,6 +275,7 @@ class History {
             return;
 
         let selection = this._getLastSelection();
+        this._selectionPinned = false;
         this._stack.redo = [];
         let undoOperation = json1.type.invertWithDoc(op, asDoc(doc));
 
@@ -299,6 +314,7 @@ class History {
             return;
 
         this._stack.redo = [];
+        this._selectionPinned = false;
         this._stack.undo.push({ operation: undoOperation, selection, rebuild: true });
         this._lastRecorded = 0;
 
