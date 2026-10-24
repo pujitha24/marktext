@@ -10,7 +10,7 @@ import type { IUserPreferences } from '@shared/types/preferences'
 import { isLinux, isOsx, isWindows } from '../config'
 import parseArgs, { userArguments } from '../cli/parser'
 import { normalizeAndResolvePath } from '../filesystem'
-import { normalizeCliMarkdownPath, normalizeMarkdownPath } from '../filesystem/markdown'
+import { cliArgumentToPath, normalizeCliMarkdownPath, normalizeMarkdownPath } from '../filesystem/markdown'
 import { confirmAndTrashItem } from '../filesystem/trash'
 import { registerKeyboardListeners } from '../keyboard'
 import { selectTheme } from '../menu/actions/theme'
@@ -80,7 +80,7 @@ class App {
           continue
         }
 
-        const info = normalizeCliMarkdownPath(path.resolve(workingDirectory, pathname))
+        const info = normalizeCliMarkdownPath(path.resolve(workingDirectory, cliArgumentToPath(pathname)))
         if (info) {
           buf.push({ ...info, ...(readOnly ? { readOnly } : {}) } as PathInfo)
         }
@@ -193,7 +193,7 @@ class App {
           continue
         }
 
-        const info = normalizeCliMarkdownPath(pathname)
+        const info = normalizeCliMarkdownPath(cliArgumentToPath(pathname))
         if (info) {
           _openFilesCache.push({ ...info, ...(readOnly ? { readOnly } : {}) } as PathInfo)
         }

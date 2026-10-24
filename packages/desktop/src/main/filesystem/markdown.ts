@@ -1,6 +1,7 @@
 import fsPromises from 'fs/promises'
 import { lstatSync, statSync } from 'fs'
 import path from 'path'
+import { fileURLToPath } from 'url'
 import log from 'electron-log'
 import iconv from 'iconv-lite'
 import { LINE_ENDING_REG, LF_LINE_ENDING_REG, CRLF_LINE_ENDING_REG } from '../config'
@@ -63,6 +64,16 @@ export const normalizeMarkdownPath = (
     }
   }
   return null
+}
+
+// File managers following the Desktop Entry `%U` field pass `file://` URIs instead of paths.
+export const cliArgumentToPath = (argument: string): string => {
+  if (!/^file:\/\//i.test(argument)) return argument
+  try {
+    return fileURLToPath(argument)
+  } catch {
+    return argument
+  }
 }
 
 export const normalizeCliMarkdownPath = (pathname: string) => {

@@ -2,7 +2,9 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs
 import { tmpdir } from 'os'
 import path from 'path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { pathToFileURL } from 'url'
 import {
+  cliArgumentToPath,
   loadCliMarkdownFile,
   loadMarkdownFile,
   normalizeCliMarkdownPath,
@@ -79,5 +81,25 @@ describe('CLI missing file (#2143)', () => {
     await expect(
       loadCliMarkdownFile(path.join(directory, 'missing', 'note.md'), 'utf8', 'lf')
     ).rejects.toMatchObject({ code: 'ENOENT' })
+  })
+})
+
+describe('CLI file:// URI arguments (#5843)', () => {
+  it('converts percent-encoded file URIs to filesystem paths', () => {
+    const pathname = path.join(tempDirectory(), 'my note é.md')
+    writeFileSync(pathname, 'x')
+    const uri = pathToFileURL(pathname).href
+    expect(uri).toContain('%20')
+    expect(cliArgumentToPath(uri)).toBe(pathname)
+    expect(normalizeCliMarkdownPath(cliArgumentToPath(uri))).toEqual({ path: pathname, isDir: false })
+  })
+
+  it('falls back to the raw argument for malformed URIs', () => {
+    expect(cliArgumentToPath('file:///tmp/a%2Fb.md')).toBe('file:///tmp/a%2Fb.md')
+  })
+
+  it('leaves plain paths untouched', () => {
+    expect(cliArgumentToPath('notes/a.md')).toBe('notes/a.md')
+    expect(cliArgumentToPath('/tmp/file:name.md')).toBe('/tmp/file:name.md')
   })
 })
